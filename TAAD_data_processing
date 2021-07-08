@@ -1,0 +1,108 @@
+# 要添加一个新单元，输入 '# %%'
+# 要添加一个新的标记单元，输入 '# %% [markdown]'
+# %%
+import pandas as pd 
+import numpy as numpy
+df1=pd.read_csv(r"C:\Users\mjdee\Desktop\TAAD_data\redcap.csv",converters={'id_2':str,'research_institution':str})
+pd.set_option('display.max_columns', None)
+df1.tail(20)
+#df1为redcap数据导出
+#设置id为字符串格式
+
+
+# %%
+df2_old=pd.read_excel(r"C:\Users\mjdee\Desktop\TAAD_data\firstresult",sheet_name='检验',converters={'病案号':str})
+df2_old.head()
+#df2为检验数据导出
+
+
+# %%
+df2_added=pd.read_excel(r"C:\Users\mjdee\Desktop\TAAD_data\second_lab",sheet_name='检验',converters={'病案号':str})
+df2_added.head()
+
+
+# %%
+df2=pd.concat([df2_old,df2_added])
+
+
+# %%
+df2_added.info()
+
+
+# %%
+df2_change1=df2.groupby('病案号').apply(lambda x:x.fillna(method='bfill')).groupby('病案号').apply(lambda x:x.fillna(method='ffill'))
+df2_change2=df2_change1.drop_duplicates(subset=None, keep='first', inplace=False, ignore_index=False)
+df2_change3=df2_change2.groupby('病案号').median()
+df2_change3
+#填充空缺
+#取中位数
+
+
+# %%
+file = open(r"C:\Users\mjdee\hello\step1_learning\taad\taad1.xlsx")
+outputpath=r"C:\Users\mjdee\hello\step1_learning\taad\taad1.xlsx"
+df2_change3.to_excel(r"C:\Users\mjdee\hello\step1_learning\taad\taad1.xlsx", sheet_name='Sheet1', na_rep='',
+ float_format=None, columns=None, header=True, index=True, 
+ index_label=None, startrow=0, startcol=0, engine=None, 
+ merge_cells=True, encoding=None, inf_rep='inf', verbose=True, 
+ freeze_panes=None)
+ #保存
+
+
+# %%
+df1['病案号']=df1['id_2']
+#id对应
+
+
+# %%
+df_merged=pd.merge(df1, df2_change3,on=['病案号'], how='inner')
+df_merged
+
+
+# %%
+file = open(r"C:\Users\mjdee\hello\step1_learning\taad\taad2.xlsx")
+outputpath=r"C:\Users\mjdee\hello\step1_learning\taad\taad2.xlsx"
+df_merged.to_excel(r"C:\Users\mjdee\hello\step1_learning\taad\taad2.xlsx", sheet_name='Sheet1', na_rep='',
+ float_format=None, columns=None, header=True, index=True, 
+ index_label=None, startrow=0, startcol=0, engine=None, 
+ merge_cells=True, encoding=None, inf_rep='inf', verbose=True, 
+ freeze_panes=None)
+
+
+# %%
+df_new=df1.groupby('research_institution').get_group('4')
+df_new
+
+
+# %%
+s1=pd.DataFrame({'name':df_merged['name'],'record_id':df_merged['record_id'],'id_2':df_merged['id_2']})
+s2=pd.DataFrame({'name':df_new['name'],'record_id':df_new['record_id'],'id_2':df_new['id_2']})	
+
+
+# %%
+s1.describe()
+
+
+# %%
+s2.describe()
+
+
+# %%
+set_diff_df = pd.concat([s2, s1, s1]).drop_duplicates(keep=False)
+set_diff_df.head()
+
+
+# %%
+file = open(r"C:\Users\mjdee\hello\step1_learning\taad\missing_data.xlsx")
+outputpath=r"C:\Users\mjdee\hello\step1_learning\taad\missing_data.xlsx"
+set_diff_df.to_excel(r"C:\Users\mjdee\hello\step1_learning\taad\missing_data.xlsx", sheet_name='Sheet1', na_rep='',
+ float_format=None, columns=None, header=True, index=True, 
+ index_label=None, startrow=0, startcol=0, engine=None, 
+ merge_cells=True, encoding=None, inf_rep='inf', verbose=True, 
+ freeze_panes=None)
+
+
+# %%
+
+
+
