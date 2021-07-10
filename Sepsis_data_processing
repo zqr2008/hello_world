@@ -1,0 +1,6 @@
+mydata<-read.csv("C:/Users/mjdee/Desktop/sepsis/数据库1.csv")
+mydata1<-read.csv("C:/Users/mjdee/Desktop/sepsis/数据库2.csv")
+mydata_withoutdu<- mydata %>% group_by(患者姓名) %>% filter(row_number()==1) 
+mydata_withoutdu1<- mydata1 %>% group_by(患者姓名) %>% filter(row_number()==1) 
+total<-merge(mydata_withoutdu,mydata_withoutdu1,by=c("患者姓名"))
+names(total)[5]<-"hospital"
