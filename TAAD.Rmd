@@ -1,0 +1,153 @@
+---
+title: "taad"
+author: "zqr2008"
+date: "2021/8/1"
+output: html_document
+---
+library(readxl)
+library(tidyverse)
+library(lubridate)
+library(compareGroups)
+library(pROC)
+library(performance)
+library(see)
+library(ggplot2)
+library(rms)
+
+
+final_analysis <- read_csv("D:/TAAD_data/final_analysis.csv")
+data<-final_analysis[-1,]
+data<-dplyr::mutate_at(data, .vars = vars(7:17), .fun =as.numeric )
+data<-dplyr::mutate_at(data, .vars = vars(18:115), .fun =as.factor )
+data<-dplyr::mutate_at(data, .vars = vars(116:117), .fun =as.numeric )
+data<-dplyr::mutate_at(data, .vars = vars(118:119), .fun =as.factor )
+data<-dplyr::mutate_at(data, .vars = vars(120:124), .fun =as.numeric )
+data<-dplyr::mutate_at(data, .vars = vars(125:141), .fun =as.factor )
+data<-dplyr::mutate_at(data, .vars = vars(142:185), .fun =as.numeric )
+data<-dplyr::mutate_at(data, .vars = vars(186:249), .fun =as.factor )
+data<-dplyr::mutate_at(data, .vars = vars(250:253), .fun =as.numeric )
+data<-dplyr::mutate_at(data, .vars = vars(254:291), .fun =as.factor )
+data<-dplyr::mutate_at(data, .vars = vars(293), .fun =as.numeric )
+jiacengdata<-data%>% filter(诊断=="1")
+jiacengdata$outcome<-jiacengdata$是否院内死亡
+jiacengdata$outcome<-as.numeric(jiacengdata$outcome)
+jiacengdata$outcome[jiacengdata$outcome==2]<-"0"
+jiacengdata$outcome<-factor(jiacengdata$outcome)
+jiacengdata$age_group<-jiacengdata$`年龄（岁）`
+
+jiacengdata$age_group[jiacengdata$age_group>70]<-"old"
+jiacengdata$age_group[jiacengdata$age_group<70]<-"young"
+
+f_lrm <-glm(outcome~ `年龄（岁）`+是否从外院转来+`疼痛部位   (choice=胸部)`+`疼痛部位   (choice=腹部)`+是否发生迁移+`循环系统 (choice=胸闷)`+`呼吸系统 (choice=呼吸困难)`+漂浮内膜片+室壁节段性运动异常+是否介入治疗+是否手术治疗,data=jiacengdata,family=binomial())
+
+
+f_lrm <-lrm(outcome~ 是否从外院转来+是否发生迁移+漂浮内膜片+室壁节段性运动异常+是否介入治疗+是否手术治疗,data=jiacengdata,x=TRUE, y=TRUE,maxit=1000)
+
+glm.probs <- predict(f_lrm,jiacengdata,type="response")
+jiacengdata$prob6 = glm.probs
+g6 <- roc(outcome~prob6, data=jiacengdata)
+plot(g6)
+
+
+
+
+X_DATA_2021_07_20_08_8_03_1_ <- read_excel("D:/TAAD_data/_DATA_2021-07-20_08(8.03)(1).xlsx")
+mydata<-X_DATA_2021_07_20_08_8_03_1_
+mydata<-dplyr::mutate_at(mydata, .vars = vars(6), .fun =as.factor )
+mydata<-dplyr::mutate_at(mydata, .vars = vars(8:24), .fun =as.factor )
+mydata<-dplyr::mutate_at(mydata, .vars = vars(29:33), .fun =as.factor )
+mydata<-dplyr::mutate_at(mydata, .vars = vars(39:67), .fun =as.factor )
+mydata$outcome<-as.numeric(mydata$death_whether)
+mydata$outcome[mydata$outcome==2]<-"0"
+mydata$outcome<-factor(mydata$outcome)
+
+f_lrm <-glm(outcome~ gender+other_hospital+pain_location___1+pain_location___3+pain_location___4+circulation_system___1+circulation_system___2+circulation_system___3+respiratory_system___2+cns_1_2_3_4_9_11_12+consciousness+hr+rr+hypotention+plt+neutrophli+tbil+scr+d_dimer_mg_l+ecgchange+cta_sign___5+diagnose+surgery_all,data=mydata,family=binomial(link="logit"))
+
+glm.probs <- predict(f_lrm,mydata,type="response")
+mydata$prob6 = glm.probs
+g6 <- roc(outcome~prob6, data=mydata)
+plot(g6)
+----------------------------------------------------------------------------------------
+
+X_DATA_2021_07_20_08_8_03_1_ <- read_excel("D:/TAAD_data/_DATA_2021-07-20_08(8.03)(1).xlsx")
+mydata<-X_DATA_2021_07_20_08_8_03_1_
+bc<-mydata[,c(6:13,15:19,21,22,24,25,26,30,34,35,36,37,48,51,58,60,61,64,66,68)]
+bc<-na.omit(bc)
+x<-data.matrix(bc[,c(1:30)])
+y<-data.matrix(bc[,31])
+f1 = glmnet(x, y, family="binomial", nlambda=100, alpha=1)
+
+plot(f1)
+cvfit=cv.glmnet(x,y)
+plot(cvfit)
+
+cvfit$lambda.min
+cvfit$lambda.1se
+
+l.coef2<-coef(cvfit$glmnet.fit,s=0.003360073,exact = F)
+l.coef1<-coef(cvfit$glmnet.fit,s=0.03133615,exact = F)
+
+f_lrm <-glm(outcome~ gender+other_hospital+pain_location___1+pain_location___3+pain_location___4+circulation_system___2+circulation_system___3+respiratory_system___2+digestive_system+cns_1_2_3_4_9_11_12+consciousness+hr+rr+hypotention+plt+neutrophli+tbil+scr+cta_lesion___5+cta_lesion___12+organ_involved___1+diagnose_type +treatment,data=mydata,family=binomial(link="logit"))
+
+
+f_lrm <-lrm(outcome~ gender+other_hospital+pain_location___1+pain_location___3+pain_location___4+circulation_system___2+circulation_system___3+respiratory_system___2+digestive_system+cns_1_2_3_4_9_11_12+consciousness+hr+rr+hypotention+plt+neutrophli+tbil+scr+cta_lesion___5+cta_lesion___12+organ_involved___1+diagnose_type+treatment,data=mydata, x=TRUE, y=TRUE,maxit=1000)
+ddist <- datadist(mydata)
+options(datadist='ddist')
+
+nomogram <- nomogram(f_lrm,fun=function(x)1/(1+exp(-x)), ##逻辑回归计算公式
+                     fun.at = c(0.01,0.1,0.3,0.5,0.8,0.9,0.99),#风险轴刻度
+                     funlabel = "Prob of death", #风险轴便签
+                     lp=F,  ##是否显示系数轴
+                     conf.int = F, ##每个得分的置信度区间，用横线表示,横线越长置信度越
+                     abbrev = F#是否用简称代表因子变量
+)
+
+plot(nomogram)
+
+glm.probs <- predict(f_lrm,mydata,type="response")
+mydata$prob6 = glm.probs
+g6 <- roc(outcome~prob6, data=mydata)
+plot(g6)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--------------------------------------------------------------------------------------
+jiaceng<-descrTable(是否院内死亡~.,data=jiacengdata,method=NA,hide.no="no")
+jiacengA<-descrTable(是否院内死亡~.,subset = 主动脉夹层分型=="1",data=jiacengdata,method=NA,hide.no="no")
+jiacengB<-descrTable(是否院内死亡~.,subset = 主动脉夹层分型=="2",data=jiacengdata,method=NA,hide.no="no")    
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
